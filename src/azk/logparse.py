@@ -37,10 +37,14 @@ _ETID = re.compile(r"\((\d+)\)")
 # Client groups are (.+?)/(.+): principal names may contain spaces; a strict \S+ would make such
 # lines unparseable and let an attacker hide failed attempts from the counters.
 _AS_OK = re.compile(r"authtime (\d+), (etypes \{[^}]*\}), (.+) for (\S+)$")
-_AS_FAIL = re.compile(r"(.+?) for (\S+?)(?:, (.*))?$")
+# Greedy client + service token that must contain "@" (the KDC always prints the full principal):
+# the split is the LAST " for <principal>", so a name that itself contains " for krbtgt/X@Y, ..."
+# stays inside the client field instead of misattributing the failure to another principal.
+# KDC message text (e.g. "KDC has no support for encryption type") has no "@" token after " for ".
+_AS_FAIL = re.compile(r"(.+) for (\S+@\S+?)(?:, (.*))?$")
 # Real MIT krb5 1.20.1 output: ISSUE lines have "etypes {...}, CLIENT" but failure lines
 # (AZK_RISK_DENY, LOOKING_UP_SERVER, BAD_ENCRYPTION_TYPE) have "etypes {...} CLIENT" with NO comma.
-_TGS = re.compile(r"authtime (\d+),(?: (etypes \{[^}]*\}),?)?\s*(.+?) for (\S+?)(?:, (.*))?$")
+_TGS = re.compile(r"authtime (\d+),(?: (etypes \{[^}]*\}),?)?\s*(.+) for (\S+@\S+?)(?:, (.*))?$")
 # Greedy client + end anchor: the numeric fields at the end of the line are written by our plugin,
 # so the split point is the LAST " level=" even if the principal name itself contains one.
 _POLICY = re.compile(

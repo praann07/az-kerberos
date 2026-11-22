@@ -34,7 +34,7 @@
 | `src/azk/audit.py` | Hash chain + signed checkpoints + `verify(anchor=)`. |
 | `src/azk/simulator.py`, `demo.py` | SYNTHETIC logs and smoke run. Not an evaluation. |
 | `plugin/kdcpolicy_azk.c` | kdcpolicy module. Compiled and loaded on stock krb5 1.20.1 in WSL Ubuntu-24.04 (`kdcpolicy_azk_initvt` exported); enforces lifetime caps and denial at AS and TGS. |
-| `tests/test_azk.py` | 27 unit tests (parser incl. real KDC lines and log-injection cases, table, audit tamper cases, engine incl. oversized-name handling). All pass. |
+| `tests/test_azk.py` | 28 unit tests (parser incl. real KDC lines and log-injection cases, table, audit tamper cases, engine incl. oversized-name handling). All pass. |
 
 ## Risk table layout (little-endian; must match C)
 Header 32 B: `'AZRT'` | version u32=1 | nslots u32 (power of 2) | generated_at u64 (at offset 12) | 12 B pad.

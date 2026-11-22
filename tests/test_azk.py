@@ -312,6 +312,21 @@ def test_parse_forged_policy_text_in_principal_name_is_not_a_policy_event():
     assert ev is not None and ev.kind != "POLICY" and ev.client == evil
 
 
+def test_parse_name_containing_for_clause_is_not_misattributed_to_another_principal():
+    # Second security-review finding: "victim for krbtgt/..." inside an attacker-chosen name must
+    # not make the failure count against "victim@LAB.TEST".
+    evil = "victim@LAB.TEST for krbtgt/LAB.TEST@LAB.TEST, x"
+    ev = parse_line(sim.as_fail(5.0, "1.2.3.4", evil, status="CLIENT_NOT_FOUND"))
+    assert ev is not None and ev.client == evil and ev.client != "victim@LAB.TEST"
+    ev = parse_line(sim.tgs_ok(5.0, "1.2.3.4", evil, "host/a@EXAMPLE.COM"))
+    assert ev is not None and ev.client == evil
+    # a real KDC message that itself contains " for " must still split correctly
+    ev = parse_line("2026-11-20T18:09:12+00:00 kdc azk-kdcpolicy[221]: TGS_REQ (1 etypes {DEPRECATED:arcfour-hmac(23)}) "
+                    "127.0.0.1: BAD_ENCRYPTION_TYPE: authtime 0, etypes {rep=UNSUPPORTED:(0)} user02@LAB.TEST "
+                    "for svc11/host.lab.test@LAB.TEST, KDC has no support for encryption type")
+    assert ev is not None and ev.client == "user02@LAB.TEST" and ev.service == "svc11/host.lab.test@LAB.TEST"
+
+
 def test_parse_principal_names_with_spaces_are_not_dropped():
     ev = parse_line(sim.as_fail(5.0, "1.2.3.4", "a b@LAB.TEST"))
     assert ev is not None and ev.client == "a b@LAB.TEST"

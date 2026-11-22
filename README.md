@@ -2,7 +2,7 @@
 
 Risk-adaptive ticket issuance for **stock MIT Kerberos**: an asynchronous scorer reads KDC logs and publishes a risk table; a kdcpolicy plugin caps ticket lifetime or denies; every decision goes into a signed hash-chained audit log.
 
-**Status (2026-11-22):** Python pipeline with 27 passing tests (3 added after an automated security review: parser anchoring, oversized-name handling; see `docs/03_threat_model.md` T9, T10, T14, T15); C plugin compiled and running on MIT krb5 1.20.1 (WSL Ubuntu-24.04); X1–X6 measured on the live KDC. The closed loop works. The effect on attacks is modest (see "Honest results"). Not finished: author block in the paper, stolen-credential attack (not run), several patents and one IEEE Computer paper unread, single lab realm.
+**Status (2026-11-22):** Python pipeline with 28 passing tests (4 added after automated security reviews: parser anchoring, client/service split, oversized-name handling; see `docs/03_threat_model.md` T9, T10, T14, T15); C plugin compiled and running on MIT krb5 1.20.1 (WSL Ubuntu-24.04); X1–X6 measured on the live KDC. The closed loop works. The effect on attacks is modest (see "Honest results"). Not finished: author block in the paper, stolen-credential attack (not run), several patents and one IEEE Computer paper unread, single lab realm.
 
 ## Honest results (live KDC, real `kinit`/`kvno` calls, 3 repeats)
 - Closed loop works on stock krb5: after detection, tickets are issued with the capped lifetime (3,600 s instead of 36,000 s); all signed audit logs verified.
@@ -41,7 +41,7 @@ out/            results: x1_x2_x3_real_results.json, x1_x2_x3_real_poll025.json 
 ## Run (Windows git-bash, from this folder)
 ```
 PY="/c/Users/Som Praneeth/AppData/Local/Programs/Python/Python312/python.exe"
-PYTHONPATH=src "$PY" -m pytest tests -q          # 27 tests
+PYTHONPATH=src "$PY" -m pytest tests -q          # 28 tests
 PYTHONPATH=src "$PY" -m azk.demo out             # synthetic smoke demo
 ```
 The live experiments need the WSL Ubuntu-24.04 lab (`SETUP_REQUIREMENTS.txt`); re-run X1–X3 with `out/run_real.sh`.
