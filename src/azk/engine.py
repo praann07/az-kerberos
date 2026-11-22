@@ -51,6 +51,8 @@ class Engine:
         if getattr(ev, "ambiguous", False):
             self.ambiguous_events += 1     # unscored: no feature state, no risk level, no principal blamed
             return
+        if getattr(ev, "service_unreliable", False):
+            self.ambiguous_events += 1     # still scored against the (certain) TGS client; service shown as "?"
         if ev.kind == "POLICY":
             if self.audit:
                 self.audit.append("policy_applied", {"client": ev.client, "event_ts": ev.ts, **ev.policy})

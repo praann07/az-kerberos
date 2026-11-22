@@ -64,7 +64,21 @@ class Event:
     req_etypes: tuple = ()
     rep_etypes: tuple = ()         # (rep, tkt, ses) enctype ids that were present
     policy: Optional[dict] = None  # POLICY events only
-    ambiguous: bool = False        # client/service split was not unique (informational, never scored)
+    ambiguous: bool = False        # client unknown: split not unique, event is NOT scored (client key starts "?")
+    service_unreliable: bool = False  # TGS only: client is certain, service text is not (service == "?")
+
+
+# One unescaped "@" between a name made of non-space characters (or backslash escapes) and a realm.
+# The KDC prints "@" inside a name component as "\@" (live-checked 2026-11-22), so a name cannot fake this shape.
+_STRICT_PRINC = re.compile(r"^(?:[^\s@\\]|\\.)+@[^\s@\\]+$")
+
+
+def _tgs_client_fallback(body: str):
+    """TGS client is authenticated (from the TGT); only the SERVICE is attacker-chosen. When the two splits
+    disagree, keep the text before the FIRST " for " as the client if it is a strict principal; else None."""
+    i = body.find(" for ")
+    cand = body[:i] if i > 0 else ""
+    return cand if _STRICT_PRINC.match(cand) else None
 
 
 def _split_cs(body: str) -> tuple:
@@ -139,6 +153,10 @@ def parse_line(line: str, year: Optional[int] = None, default_ts: Optional[float
     if b.group(2):
         rep_et = tuple(int(x) for x in _ETID.findall(b.group(2)))
     client, service, amb = _split_cs(b.group(3))
+    if amb:
+        cand = _tgs_client_fallback(b.group(3))
+        if cand is not None:
+            return Event(ts, "TGS", ok, status, ip, cand, "?", req_et, rep_et, service_unreliable=True)
     return Event(ts, "TGS", ok, status, ip, client, service, req_et, rep_et, ambiguous=amb)
 
 
