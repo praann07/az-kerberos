@@ -68,6 +68,9 @@ To resolve this tension, we present \textbf{AZ-Kerberos}, a closed-loop adaptive
     \item \textbf{Full Empirical Validation on Live MIT KDC:} We compile, install, and evaluate AZ-Kerberos on a live MIT Kerberos deployment with 50 user principals and 20 service principals under live Kerberoasting and password-spray workloads, reporting latency overhead, fail-open resilience, audit integrity and attack mitigation (modest, see Section~IV-D).
 \end{itemize}
 
+\subsection{Related Work}
+\textit{Kerberos detection} work is alert-only: Kotlaba combines machine learning with honeypots (7/7 true positives, 0 false positives) \cite{kotlaba2020icissp} and a one-class SVM (3 true positives, 34 false positives, on 3 positive events) \cite{kotlaba2021icissp}; Grippo and Kholidy inspect Windows events for forged tickets and report no quantitative result \cite{grippo2023kerberos}; MITRE DET0144 suggests alerting on ticket lifetime \cite{mitredet0144}. None of these changes what the KDC issues. \textit{Kerberos extensions} such as the 2025 KTCGM proposal \cite{ktcgm2025} pair a threshold-shared KDC with ML anomaly scoring that triggers step-up multi-factor authentication; that design is not implemented or measured in the text and needs protocol and client changes. MIT's \texttt{kdcpolicy} hook \cite{k5wikipolicy} is the enforcement point we build on, but ships no scoring or adaptation. \textit{Risk-based authentication} targets interactive web sign-in \cite{wiefling2022tops}, and tamper-evident logging \cite{crosby2009usenix} is not tied to access decisions. In our partial literature search we found no work combining asynchronous scoring, issuance changes on unmodified MIT krb5 and a signed hash-chained decision log; this is a weak negative result, as IEEE Xplore, ACM DL and the major security conferences were not searched.
+
 \section{System Architecture and Design}
 AZ-Kerberos organizes functionality into three distinct decoupled components operating across different privilege boundaries:
 \begin{enumerate}
@@ -152,6 +155,9 @@ AZ-Kerberos shows that a risk score computed off the request path can reach the 
 \bibitem{kotlaba2020icissp} M. Kotlaba, ``Detection of Kerberoasting Attacks Using Machine Learning and Honeypots,'' in \textit{Proc. ICISSP}, 2020.
 \bibitem{kotlaba2021icissp} M. Kotlaba, ``An Anomaly-based Intrusion Detection System for Kerberos using One-Class Support Vector Machines,'' in \textit{Proc. ICISSP}, 2021.
 \bibitem{grippo2023kerberos} M. Grippo and H. A. Kholidy, ``Detecting Forged Kerberos Tickets in an Active Directory Environment,'' \textit{arXiv:2301.00044}, 2022.
+\bibitem{ktcgm2025} R. Almatarneh et al., ``KTCGM: Towards a Novel Solution for Enhancing Kerberos-5 with Threshold Cryptography and ML-Based Anomaly Detection,'' \textit{Int. J. Innovative Research and Scientific Studies}, vol. 8, no. 3, pp. 3646--3662, 2025.
+\bibitem{k5wikipolicy} MIT Kerberos Project, ``Projects/KDC TGS Policy plugin,'' K5Wiki, \url{https://k5wiki.kerberos.org/wiki/Projects/KDC_TGS_Policy_plugin}, accessed 2026-11-22.
+\bibitem{mitredet0144} MITRE, ``Detect Forged Kerberos Golden Tickets (T1558.001), Detection Strategy DET0144,'' MITRE ATT\&CK, \url{https://attack.mitre.org/detectionstrategies/DET0144/}, accessed 2026-11-22.
 \bibitem{crosby2009usenix} S. A. Crosby and D. S. Wallach, ``Efficient Data Structures for Tamper-Evident Logging,'' in \textit{Proc. USENIX Security}, 2009.
 \end{thebibliography}
 
