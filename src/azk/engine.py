@@ -43,6 +43,7 @@ class Engine:
         self.breaker_tripped = False
         self.victim_lockout_mitigations = 0
         self.state: dict[str, list] = {}   # client -> [level, expires_ts]
+        self.dropped_oversized = 0         # restricted names too long for a table slot (skipped)
         self.trace: list = []              # (event, raw_score, instantaneous_level, effective_level)
 
     def feed(self, ev) -> None:
@@ -103,6 +104,13 @@ class Engine:
         out = []
         for client, (lvl, exp) in self.state.items():
             if exp > now:
+                # Principal names come from the log and are attacker-controlled (a failed AS_REQ
+                # logs any name). A name that does not fit a table slot must be skipped, not
+                # raise: risktable.build() is strict, and one exception here would stop every
+                # table publish, i.e. fail open for all principals.
+                if len(client.encode()) >= risktable.NAME_LEN:
+                    self.dropped_oversized += 1
+                    continue
                 life, ren = self.policy[min(lvl, max(self.policy))]
                 out.append(risktable.Entry(client, lvl, life, ren, int(exp)))
         return out

@@ -296,3 +296,39 @@ def test_engine_t1_victim_lockout_and_circuit_breaker(tmp_path):
         eng.feed(parse_line(sim.as_fail(1060 + i, "10.0.0.1", "u4@LAB.TEST")))
     assert eng.breaker_tripped is True
     assert eng.state["u4@LAB.TEST"][0] == 1
+
+
+def test_parse_forged_policy_text_in_principal_name_is_not_a_policy_event():
+    # Security-review finding 4: a failed AS_REQ logs whatever principal name the attacker sent.
+    evil = "evil AZK_POLICY phase=AS client=victim@LAB.TEST level=0 lifetime=1 renew=1 deny=0 table_gen=1"
+    ev = parse_line(sim.as_fail(5.0, "1.2.3.4", evil))
+    assert ev is not None and ev.kind != "POLICY" and ev.policy is None
+    assert ev.client == evil
+    # real-journal style prefix (host + tag[pid]:) must be handled the same way
+    line = ("2026-11-20T17:51:32+00:00 kdc azk-kdcpolicy[1217]: AS_REQ (2 etypes {aes256-cts-hmac-sha1-96(18), "
+            "aes128-cts-hmac-sha1-96(17)}) 127.0.0.1: PREAUTH_FAILED: " + evil + " for krbtgt/LAB.TEST@LAB.TEST, "
+            "Preauthentication failed")
+    ev = parse_line(line)
+    assert ev is not None and ev.kind != "POLICY" and ev.client == evil
+
+
+def test_parse_principal_names_with_spaces_are_not_dropped():
+    ev = parse_line(sim.as_fail(5.0, "1.2.3.4", "a b@LAB.TEST"))
+    assert ev is not None and ev.client == "a b@LAB.TEST"
+    ev = parse_line("2026-11-20T10:00:00Z kdc AZK_POLICY phase=AS client=a level=9 lifetime=1 renew=1 deny=0 "
+                    "table_gen=1 x@R level=2 lifetime=600 renew=1 deny=0 table_gen=17")
+    assert ev.kind == "POLICY" and ev.policy["level"] == 2 and ev.policy["lifetime"] == 600
+
+
+def test_snapshot_skips_oversized_principal_names_instead_of_raising(tmp_path):
+    # Security-review finding 1: one attacker-chosen long name must not stop table publishing.
+    eng = Engine(FeatureExtractor(), _FixedScorer(), LevelMap((0.5, 1.0, 2.0)), hold_s=100)
+    long_name = "x" * 80 + "@LAB.TEST"
+    eng.state[long_name] = [2, 2000.0]
+    eng.state["ok@LAB.TEST"] = [2, 2000.0]
+    snap = eng.snapshot(1000)
+    assert [e.principal for e in snap] == ["ok@LAB.TEST"]
+    assert eng.dropped_oversized == 1
+    path = str(tmp_path / "t.bin")
+    eng.publish(path, 1000)                                    # must not raise
+    assert risktable.RiskTable.load(path).lookup("ok@LAB.TEST", 1000).level == 2

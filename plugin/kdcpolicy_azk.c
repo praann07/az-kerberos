@@ -194,10 +194,12 @@ static krb5_error_code azk_check_as(krb5_context ctx, krb5_kdcpolicy_moddata mod
                                     const char **status, krb5_deltat *lifetime_out,
                                     krb5_deltat *renew_lifetime_out)
 {
-    (void)client; (void)server; (void)auth_indicators;
-    /* request->client is what the client asked for; aliases / enterprise-name canonicalisation
-     * can make it differ from the name in the KDC log. Documented limitation (docs/03). */
-    return azk_apply(ctx, (struct azk_data *)moddata, request->client, "AS", status,
+    (void)server; (void)auth_indicators;
+    /* request->client is what the client asked for; with aliases / enterprise names (kinit -E)
+     * it can differ from the canonical principal the KDC logs, which is the key the risk table
+     * uses. Prefer the KDB entry's canonical principal; fall back to the requested name. */
+    krb5_const_principal who = (client != NULL && client->princ != NULL) ? client->princ : request->client;
+    return azk_apply(ctx, (struct azk_data *)moddata, who, "AS", status,
                      lifetime_out, renew_lifetime_out);
 }
 

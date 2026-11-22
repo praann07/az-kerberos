@@ -27,15 +27,24 @@ RC4_ETYPES = frozenset({23, 24})  # arcfour-hmac, arcfour-hmac-exp
 _ISO = re.compile(r"^(\d{4}-\d{2}-\d{2}T[\d:.]+(?:Z|[+-]\d{2}:\d{2})?)\s")
 _BSD = re.compile(r"^([A-Z][a-z]{2})\s+(\d{1,2})\s(\d{2}:\d{2}:\d{2})\s")
 _MONTHS = {m: i for i, m in enumerate("Jan Feb Mar Apr May Jun Jul Aug Sep Oct Nov Dec".split(), 1)}
+# Security: every pattern is applied with .match() at the START of the syslog *message* (after the
+# timestamp, optional host and optional "tag[pid](info):" token), never .search() anywhere in the line.
+# Principal names are attacker-controlled (a failed AS_REQ logs whatever name was sent), so a name
+# containing "AZK_POLICY phase=AS client=..." must not be parsed as a policy line.
+_MSG_START = re.compile(r"^(?:\S+\s+)?(?:[^\s:]+:\s+)?(?=(?:AS_REQ|TGS_REQ) \(|AZK_POLICY )")
 _REQ = re.compile(r"(AS_REQ|TGS_REQ) \((\d+) etypes \{([^}]*)\}\) (\S+): ([A-Z0-9_]+): (.*)$")
 _ETID = re.compile(r"\((\d+)\)")
-_AS_OK = re.compile(r"authtime (\d+), (etypes \{[^}]*\}), (\S+) for (\S+)$")
-_AS_FAIL = re.compile(r"(\S+) for (\S+?)(?:, (.*))?$")
+# Client groups are (.+?)/(.+): principal names may contain spaces; a strict \S+ would make such
+# lines unparseable and let an attacker hide failed attempts from the counters.
+_AS_OK = re.compile(r"authtime (\d+), (etypes \{[^}]*\}), (.+) for (\S+)$")
+_AS_FAIL = re.compile(r"(.+?) for (\S+?)(?:, (.*))?$")
 # Real MIT krb5 1.20.1 output: ISSUE lines have "etypes {...}, CLIENT" but failure lines
 # (AZK_RISK_DENY, LOOKING_UP_SERVER, BAD_ENCRYPTION_TYPE) have "etypes {...} CLIENT" with NO comma.
-_TGS = re.compile(r"authtime (\d+),(?: (etypes \{[^}]*\}),?)?\s*(\S+) for (\S+?)(?:, (.*))?$")
+_TGS = re.compile(r"authtime (\d+),(?: (etypes \{[^}]*\}),?)?\s*(.+?) for (\S+?)(?:, (.*))?$")
+# Greedy client + end anchor: the numeric fields at the end of the line are written by our plugin,
+# so the split point is the LAST " level=" even if the principal name itself contains one.
 _POLICY = re.compile(
-    r"AZK_POLICY phase=(AS|TGS) client=(\S+) level=(\d+) lifetime=(\d+) renew=(\d+) deny=(\d) table_gen=(\d+)")
+    r"AZK_POLICY phase=(AS|TGS) client=(.+) level=(\d+) lifetime=(\d+) renew=(\d+) deny=(\d) table_gen=(\d+)\s*$")
 
 
 @dataclass(frozen=True)
@@ -52,35 +61,44 @@ class Event:
     policy: Optional[dict] = None  # POLICY events only
 
 
-def _timestamp(line: str, year: Optional[int]) -> Optional[float]:
+def _split_timestamp(line: str, year: Optional[int]) -> tuple:
+    """Return (epoch or None, rest-of-line after the timestamp)."""
     m = _ISO.match(line)
     if m:
         dt = datetime.fromisoformat(m.group(1))
         if dt.tzinfo is None:
             dt = dt.replace(tzinfo=timezone.utc)
-        return dt.timestamp()
+        return dt.timestamp(), line[m.end():]
     m = _BSD.match(line)
     if m and year:
         dt = datetime(year, _MONTHS[m.group(1)], int(m.group(2)),
                       *map(int, m.group(3).split(":")), tzinfo=timezone.utc)
-        return dt.timestamp()
-    return None
+        return dt.timestamp(), line[m.end():]
+    return None, line
 
 
 def parse_line(line: str, year: Optional[int] = None, default_ts: Optional[float] = None) -> Optional[Event]:
-    """Return an Event, or None for lines that are neither KDC requests nor AZK_POLICY lines."""
-    ts = _timestamp(line, year)
+    """Return an Event, or None for lines that are neither KDC requests nor AZK_POLICY lines.
+
+    Patterns are anchored at the start of the syslog message (see _MSG_START), so attacker-chosen
+    principal names later in the line cannot forge or hide events.
+    """
+    ts, rest = _split_timestamp(line, year)
     if ts is None:
         ts = default_ts
     if ts is None:
         return None
-    pm = _POLICY.search(line)
+    ms = _MSG_START.match(rest)
+    if not ms:
+        return None
+    line = rest[ms.end():]
+    pm = _POLICY.match(line)
     if pm:
         ph, client, lvl, life, ren, deny, gen = pm.groups()
         return Event(ts, "POLICY", True, "POLICY", "", client, "", policy={
             "phase": ph, "level": int(lvl), "lifetime": int(life), "renew": int(ren),
             "deny": int(deny), "table_gen": int(gen)})
-    m = _REQ.search(line)
+    m = _REQ.match(line)
     if not m:
         return None
     kind, _n, etypes_s, ip, status, body = m.groups()
