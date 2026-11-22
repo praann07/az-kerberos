@@ -37,14 +37,19 @@ _ETID = re.compile(r"\((\d+)\)")
 # Client groups are (.+?)/(.+): principal names may contain spaces; a strict \S+ would make such
 # lines unparseable and let an attacker hide failed attempts from the counters.
 _AS_OK = re.compile(r"authtime (\d+), (etypes \{[^}]*\}), (.+) for (\S+)$")
-# Greedy client + service token that must contain "@" (the KDC always prints the full principal):
-# the split is the LAST " for <principal>", so a name that itself contains " for krbtgt/X@Y, ..."
-# stays inside the client field instead of misattributing the failure to another principal.
-# KDC message text (e.g. "KDC has no support for encryption type") has no "@" token after " for ".
+# "CLIENT for SERVICE[, message]" is ambiguous in a text log, so the split point is chosen by WHO
+# controls each field (see _split_cs), never by a greedy/lazy regex the attacker can steer:
+#   * TGS request, and AS request whose client exists: the client is authenticated or found in the KDB,
+#     so it never contains " for "; the SERVICE name is attacker-chosen -> split at the FIRST " for ".
+#   * AS request for a client that does NOT exist (CLIENT_NOT_FOUND / LOOKING_UP_CLIENT): the client name
+#     is attacker-chosen -> split at the LAST " for <token with @>"; the result can never equal a real
+#     principal, so it cannot be misattributed to a victim.
+# Anything that cannot be split is kept under the key "?"+text and flagged ambiguous (never dropped).
+_AS_UNTRUSTED_CLIENT = frozenset({"CLIENT_NOT_FOUND", "LOOKING_UP_CLIENT"})
 _AS_FAIL = re.compile(r"(.+) for (\S+@\S+?)(?:, (.*))?$")
 # Real MIT krb5 1.20.1 output: ISSUE lines have "etypes {...}, CLIENT" but failure lines
 # (AZK_RISK_DENY, LOOKING_UP_SERVER, BAD_ENCRYPTION_TYPE) have "etypes {...} CLIENT" with NO comma.
-_TGS = re.compile(r"authtime (\d+),(?: (etypes \{[^}]*\}),?)?\s*(.+) for (\S+@\S+?)(?:, (.*))?$")
+_TGS = re.compile(r"authtime (\d+),(?: (etypes \{[^}]*\}),?)?\s*(.+)$")
 # Greedy client + end anchor: the numeric fields at the end of the line are written by our plugin,
 # so the split point is the LAST " level=" even if the principal name itself contains one.
 _POLICY = re.compile(
@@ -63,6 +68,21 @@ class Event:
     req_etypes: tuple = ()
     rep_etypes: tuple = ()         # (rep, tkt, ses) enctype ids that were present
     policy: Optional[dict] = None  # POLICY events only
+    ambiguous: bool = False        # client/service split was not unique (informational, never scored)
+
+
+def _split_cs(body: str, trusted_client: bool) -> tuple:
+    """Split "CLIENT for SERVICE[, message]" -> (client, service, ambiguous). See the comment above."""
+    if trusted_client:
+        i = body.find(" for ")
+        if i > 0:
+            service = body[i + 5:].split(", ", 1)[0]
+            return body[:i], service, " for " in service
+    else:
+        m = _AS_FAIL.match(body)
+        if m:
+            return m.group(1), m.group(2), " for " in m.group(1)
+    return "?" + body, "", True
 
 
 def _split_timestamp(line: str, year: Optional[int]) -> tuple:
@@ -117,17 +137,16 @@ def parse_line(line: str, year: Optional[int] = None, default_ts: Optional[float
             rep_et = tuple(int(x) for x in _ETID.findall(b.group(2)))
             client, service = b.group(3), b.group(4)
         else:
-            b = _AS_FAIL.match(body)
-            if not b:
-                return None
-            client, service = b.group(1), b.group(2)
+            client, service, amb = _split_cs(body, status not in _AS_UNTRUSTED_CLIENT)
+            return Event(ts, "AS", ok, status, ip, client, service, req_et, rep_et, ambiguous=amb)
         return Event(ts, "AS", ok, status, ip, client, service, req_et, rep_et)
     b = _TGS.match(body)
     if not b:
         return None
     if b.group(2):
         rep_et = tuple(int(x) for x in _ETID.findall(b.group(2)))
-    return Event(ts, "TGS", ok, status, ip, b.group(3), b.group(4), req_et, rep_et)
+    client, service, amb = _split_cs(b.group(3), True)
+    return Event(ts, "TGS", ok, status, ip, client, service, req_et, rep_et, ambiguous=amb)
 
 
 def parse_lines(lines, year: Optional[int] = None):

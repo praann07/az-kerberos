@@ -44,9 +44,12 @@ class Engine:
         self.victim_lockout_mitigations = 0
         self.state: dict[str, list] = {}   # client -> [level, expires_ts]
         self.dropped_oversized = 0         # restricted names too long for a table slot (skipped)
+        self.ambiguous_events = 0          # log lines whose client/service split was not unique (informational)
         self.trace: list = []              # (event, raw_score, instantaneous_level, effective_level)
 
     def feed(self, ev) -> None:
+        if getattr(ev, "ambiguous", False):
+            self.ambiguous_events += 1
         if ev.kind == "POLICY":
             if self.audit:
                 self.audit.append("policy_applied", {"client": ev.client, "event_ts": ev.ts, **ev.policy})
