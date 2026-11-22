@@ -1,0 +1,33 @@
+keys ['poll_s', 'attack_delays_s', 'repeats_done', 'train_events'] repeats_done 1 nruns 12
+delay=0.0 mode=azk n=2
+  AES full/capped/denied/failed: 13.5 4.5 0.0 0.0 | restricted in 1 / 2 runs; mean ttf 0.42
+  RC4 full/capped/denied/failed: 10.0 0.0 0.0 0.0 | restricted in 0 / 2 runs; mean ttf None
+  spray victims full/capped/denied/failed: 15.0 0.0 0.0 0.0
+  benign restricted req/200: 0.0 failed 0.0 restricted principals 0.0
+  audit verified all: True records [74, 83]
+delay=0.0 mode=threshold n=2
+  AES full/capped/denied/failed: 18.0 0.0 0.0 0.0 | restricted in 0 / 2 runs; mean ttf None
+  RC4 full/capped/denied/failed: 10.0 0.0 0.0 0.0 | restricted in 0 / 2 runs; mean ttf None
+  spray victims full/capped/denied/failed: 5.0 10.0 0.0 0.0
+  benign restricted req/200: 0.0 failed 0.0 restricted principals 0.0
+delay=0.0 mode=unprotected n=2
+  AES full/capped/denied/failed: 18.0 0.0 0.0 0.0 | restricted in 0 / 2 runs; mean ttf None
+  RC4 full/capped/denied/failed: 10.0 0.0 0.0 0.0 | restricted in 0 / 2 runs; mean ttf None
+  spray victims full/capped/denied/failed: 15.0 0.0 0.0 0.0
+  benign restricted req/200: 0.0 failed 0.0 restricted principals 0.0
+delay=1.0 mode=azk n=2
+  AES full/capped/denied/failed: 6.0 12.0 0.0 0.0 | restricted in 2 / 2 runs; mean ttf 6.51
+  RC4 full/capped/denied/failed: 6.0 4.0 0.0 0.0 | restricted in 2 / 2 runs; mean ttf 7.4
+  spray victims full/capped/denied/failed: 15.0 0.0 0.0 0.0
+  benign restricted req/200: 0.0 failed 0.0 restricted principals 0.0
+  audit verified all: True records [119, 117]
+delay=1.0 mode=threshold n=2
+  AES full/capped/denied/failed: 8.0 10.0 0.0 0.0 | restricted in 2 / 2 runs; mean ttf 8.49
+  RC4 full/capped/denied/failed: 6.0 4.0 0.0 0.0 | restricted in 2 / 2 runs; mean ttf 6.37
+  spray victims full/capped/denied/failed: 5.0 10.0 0.0 0.0
+  benign restricted req/200: 0.0 failed 0.0 restricted principals 0.0
+delay=1.0 mode=unprotected n=2
+  AES full/capped/denied/failed: 18.0 0.0 0.0 0.0 | restricted in 0 / 2 runs; mean ttf None
+  RC4 full/capped/denied/failed: 10.0 0.0 0.0 0.0 | restricted in 0 / 2 runs; mean ttf None
+  spray victims full/capped/denied/failed: 15.0 0.0 0.0 0.0
+  benign restricted req/200: 0.0 failed 0.0 restricted principals 0.0

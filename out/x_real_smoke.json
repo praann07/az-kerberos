@@ -1,0 +1,269 @@
+{
+  "poll_s": 1.0,
+  "repeats_done": 0,
+  "train_events": 240,
+  "runs": [
+    {
+      "mode": "unprotected",
+      "poll_s": 1.0,
+      "seed": 1000,
+      "benign": {
+        "requests": 200,
+        "restricted_requests": 0,
+        "failed_requests": 0,
+        "restricted_principals": 0
+      },
+      "kerberoast_aes": {
+        "full": 18,
+        "capped": 0,
+        "denied": 0,
+        "failed": 0,
+        "requests": 18,
+        "time_to_first_restriction_s": null,
+        "engine_first_flag_s": null,
+        "lifetimes_s": [
+          36000,
+          36000,
+          36000,
+          36000,
+          35999,
+          35999,
+          35999,
+          35999,
+          35999,
+          35999,
+          35999,
+          35999,
+          35999,
+          35999,
+          35999,
+          35999,
+          35999,
+          35999
+        ]
+      },
+      "kerberoast_rc4": {
+        "full": 10,
+        "capped": 0,
+        "denied": 0,
+        "failed": 0,
+        "requests": 10,
+        "time_to_first_restriction_s": null,
+        "engine_first_flag_s": null,
+        "lifetimes_s": [
+          36000,
+          35999,
+          35999,
+          35999,
+          35999,
+          35999,
+          35999,
+          35999,
+          35999,
+          35999
+        ]
+      },
+      "spray": {
+        "victims": 15,
+        "legit_login_full": 15,
+        "legit_login_capped": 0,
+        "legit_login_denied": 0,
+        "legit_login_failed": 0,
+        "victim_lifetimes_s": [
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000
+        ]
+      },
+      "engine_events_fed": 422
+    },
+    {
+      "mode": "threshold",
+      "poll_s": 1.0,
+      "seed": 1000,
+      "benign": {
+        "requests": 200,
+        "restricted_requests": 0,
+        "failed_requests": 0,
+        "restricted_principals": 0
+      },
+      "kerberoast_aes": {
+        "full": 18,
+        "capped": 0,
+        "denied": 0,
+        "failed": 0,
+        "requests": 18,
+        "time_to_first_restriction_s": null,
+        "engine_first_flag_s": null,
+        "lifetimes_s": [
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000
+        ]
+      },
+      "kerberoast_rc4": {
+        "full": 10,
+        "capped": 0,
+        "denied": 0,
+        "failed": 0,
+        "requests": 10,
+        "time_to_first_restriction_s": null,
+        "engine_first_flag_s": null,
+        "lifetimes_s": [
+          36000,
+          36000,
+          36000,
+          36000,
+          35999,
+          35999,
+          35999,
+          35999,
+          35999,
+          35999
+        ]
+      },
+      "spray": {
+        "victims": 15,
+        "legit_login_full": 5,
+        "legit_login_capped": 10,
+        "legit_login_denied": 0,
+        "legit_login_failed": 0,
+        "victim_lifetimes_s": [
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          3600,
+          3600,
+          3600,
+          600,
+          600,
+          600,
+          600,
+          600,
+          600,
+          600
+        ]
+      },
+      "engine_events_fed": 422
+    },
+    {
+      "mode": "azk",
+      "poll_s": 1.0,
+      "seed": 1000,
+      "benign": {
+        "requests": 200,
+        "restricted_requests": 0,
+        "failed_requests": 0,
+        "restricted_principals": 0
+      },
+      "kerberoast_aes": {
+        "full": 18,
+        "capped": 0,
+        "denied": 0,
+        "failed": 0,
+        "requests": 18,
+        "time_to_first_restriction_s": null,
+        "engine_first_flag_s": null,
+        "lifetimes_s": [
+          36000,
+          36000,
+          36000,
+          35999,
+          35999,
+          35999,
+          35999,
+          35999,
+          35999,
+          35999,
+          35999,
+          35999,
+          35999,
+          35999,
+          35999,
+          35999,
+          35999,
+          35999
+        ]
+      },
+      "kerberoast_rc4": {
+        "full": 10,
+        "capped": 0,
+        "denied": 0,
+        "failed": 0,
+        "requests": 10,
+        "time_to_first_restriction_s": null,
+        "engine_first_flag_s": null,
+        "lifetimes_s": [
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          35999,
+          35999,
+          35999,
+          35999,
+          35999
+        ]
+      },
+      "spray": {
+        "victims": 15,
+        "legit_login_full": 15,
+        "legit_login_capped": 0,
+        "legit_login_denied": 0,
+        "legit_login_failed": 0,
+        "victim_lifetimes_s": [
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000,
+          36000
+        ]
+      },
+      "audit": {
+        "verified": true,
+        "records": 33
+      },
+      "engine_events_fed": 422
+    }
+  ]
+}

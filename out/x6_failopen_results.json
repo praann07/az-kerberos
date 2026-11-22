@@ -1,0 +1,31 @@
+{
+  "missing_table": {
+    "status": "ISSUED_OK",
+    "lifetime_s": 36000,
+    "fail_open_verified": true
+  },
+  "corrupt_magic": {
+    "status": "ISSUED_OK",
+    "lifetime_s": 36000,
+    "fail_open_verified": true
+  },
+  "corrupt_size": {
+    "status": "ISSUED_OK",
+    "lifetime_s": 36000,
+    "fail_open_verified": true
+  },
+  "stale_table": {
+    "status": "ISSUED_OK",
+    "lifetime_s": 36000,
+    "fail_open_verified": true
+  },
+  "active_fresh_table": {
+    "status": "ISSUED_OK",
+    "lifetime_s": 300,
+    "enforced_verified": true
+  },
+  "active_deny": {
+    "status": "DENIED",
+    "denial_verified": true
+  }
+}

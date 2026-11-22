@@ -1,0 +1,121 @@
+AZ-KERBEROS LAB SETUP - everything to install so Claude can work directly
+Written 2026-11-20. Lab only: all attack tools run against YOUR OWN throwaway KDC inside WSL.
+
+======================================================================
+0. WHAT I CHECKED ON THIS PC (so you do not install twice)
+======================================================================
+Windows            : 11 Home, build 10.0.26300 (WSL2 is supported on Home)
+CPU / RAM / disk   : i7-14650HX / 23.7 GB RAM / ~487 GiB free on C:
+Virtualization     : Windows reports HypervisorPresent = True, so a hypervisor is already
+                     running. The BIOS flag "VirtualizationFirmwareEnabled" reads False,
+                     which is normal when Windows owns the hypervisor. If step 1 says
+                     "virtualization not enabled", turn on Intel VT-x / SVM in BIOS.
+WSL                : "Default Version: 2", but NO Linux distro installed, no Linux kernel
+                     info shown -> must install (step 1).
+Already installed  : Git 2.55.0 (Windows), Python 3.12.10 (Windows), winget v1.29.380
+                     -> nothing more is needed on the Windows side.
+Windows Python pkgs: cryptography 50.0.2, scikit-learn 1.9.1, numpy 2.5.3, scipy 1.18.1,
+                     pandas 3.0.6, matplotlib 3.11.2, joblib 1.6.0, pytest 8.3.3
+                     (the 22 tests were run with exactly these)
+Not installed      : gcc, make, Docker, any Linux distro, MIT krb5 -> the reason the C plugin
+                     is uncompiled.
+Your PowerShell here is NOT administrator (DISM returned error 740) -> step 1 must be run
+from an Administrator PowerShell.
+
+======================================================================
+1. INSTALL WSL2 + UBUNTU 24.04  (needs Administrator PowerShell; reboot if asked)
+======================================================================
+Distro to pick : Ubuntu-24.04  (listed by `wsl --list --online` today as "Ubuntu 24.04 LTS")
+Why 24.04      : krb5 1.20.1 and Python 3.12 (python version is EXPECTED, not yet checked)
+                 match the tested Windows Python 3.12. Ubuntu-26.04 (krb5 1.22.1) is also
+                 available; I picked 24.04 for tooling stability. Plugin interface needs
+                 krb5 >= 1.16, both satisfy it. I verified the interface from krb5 master
+                 source and the 1.22.3 docs, so after install I will re-check the header
+                 /usr/include/krb5/kdcpolicy_plugin.h on 1.20.1 before trusting it.
+Note           : RC4 (arcfour-hmac) test result on 1.20.1 (2026-11-22): NOT usable by default.
+                 `kvno -e arcfour-hmac` failed with "KDC has no support for encryption type"
+                 until /etc/krb5.conf [libdefaults] had `allow_weak_crypto = true` and
+                 `allow_rc4 = true` and the realm in /etc/krb5kdc/kdc.conf had
+                 `session_etypes = aes256-cts-hmac-sha1-96 aes128-cts-hmac-sha1-96 arcfour-hmac`
+                 (which of the three was decisive was not isolated).
+Note (logging) : under the systemd unit the KDC cannot write /var/log/krb5kdc.log
+                 ("Read-only file system"). The lab sets `kdc = SYSLOG:INFO:DAEMON` in
+                 [logging] of /etc/krb5kdc/kdc.conf and reads
+                 `sudo journalctl --no-pager -t azk-kdcpolicy -o short-iso-precise`
+                 (the plugin's openlog ident is what names the KDC's lines).
+
+  wsl --install -d Ubuntu-24.04
+  (create a Linux username + password when it asks; remember the password)
+
+Optional but recommended: create C:\Users\Som Praneeth\.wslconfig with
+  [wsl2]
+  memory=8GB
+  processors=6
+  swap=2GB
+then run:  wsl --shutdown
+
+======================================================================
+2. INSIDE UBUNTU (open "Ubuntu 24.04" from the Start menu)
+======================================================================
+2a. Turn on systemd (needed so syslog works; the plugin logs via syslog()):
+  sudo tee /etc/wsl.conf >/dev/null <<'EOF'
+  [boot]
+  systemd=true
+  EOF
+Then in PowerShell:  wsl --shutdown   and reopen Ubuntu.
+
+2b. Let Claude run commands without asking for your password each time.
+    This is a throwaway lab distro. SKIP this if you do not want it (then you must
+    type sudo commands yourself):
+  echo "$USER ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/90-lab
+  sudo chmod 440 /etc/sudoers.d/90-lab
+
+2c. Packages (apt). Versions seen on packages.ubuntu.com today for noble: krb5 1.20.1-6ubuntu2.10
+    (newer security builds may appear; any 1.20.1-6ubuntu2.x is fine):
+  sudo apt update && sudo apt -y upgrade
+  sudo apt -y install krb5-kdc krb5-admin-server krb5-user libkrb5-dev \
+       build-essential pkg-config gdb strace \
+       rsyslog tcpdump netcat-openbsd \
+       python3 python3-venv python3-pip python3-dev git rsync curl
+  (when asked for the realm / servers, type: LAB.TEST  and  localhost  - I will overwrite config)
+  Do NOT run krb5_newrealm yourself; I will create the realm.
+
+2d. Python packages: I will create a venv in Linux (~/azk-venv) and install the SAME versions as
+    Windows so results match:
+  cryptography==50.0.2  scikit-learn==1.9.1  numpy==2.5.3  scipy==1.18.1
+  pandas==3.0.6  matplotlib==3.11.2  joblib==1.6.0  pytest==8.3.3
+  impacket==0.13.1   (latest on PyPI today; versions available: 0.13.1, 0.13.0, 0.12.0, 0.11.0 ...)
+  Linux wheels for these exact versions are NOT yet verified; pip will tell me, and I will report
+  any version I had to change.
+  Impacket is used ONLY against the lab KDC (Kerberoasting / AS-REP roasting / password spray
+  test traffic). Whether Impacket works against an MIT KDC is still unverified.
+
+======================================================================
+3. VERIFY (run in Ubuntu, then paste the output, or just tell me "done")
+======================================================================
+  lsb_release -d
+  uname -r
+  gcc --version | head -1
+  pkg-config --modversion krb5
+  dpkg -l krb5-kdc | tail -1
+  python3 --version
+  systemctl is-system-running
+  ls /usr/include/krb5/kdcpolicy_plugin.h
+  df -h ~ | tail -1 ; free -g | head -2
+
+Expected: Ubuntu 24.04.x; gcc 13.x; krb5 1.20.1; Python 3.12.x; systemd "running" or "degraded";
+the header file exists. If the header is missing, the plugin cannot be built against the packaged
+krb5 and I will tell you what to do (build krb5 from source).
+
+======================================================================
+4. WHAT I WILL DO ONCE YOU SAY "DONE"  (I drive it from Windows with: wsl -d Ubuntu-24.04 -- ...)
+======================================================================
+  1. Copy the project to Linux (~/compsec), build plugin/kdcpolicy_azk.c, fix compile errors.
+  2. Create realm LAB.TEST, ~50 users, ~20 services, load the plugin via [plugins] kdcpolicy.
+  3. Walk the bring-up checklist in docs/05_plan_and_status.md section 4 (verify the unverified
+     assumptions: ticket->enc_part2 at the TGS hook, 1 s renew cap, syslog target, real log lines).
+  4. Fix the victim lock-out threat (T1), then run experiments X1-X6 and report measured numbers.
+
+Files stay in C:\Users\Som Praneeth\Desktop\COMPSEC (visible in Ubuntu at
+/mnt/c/Users/"Som Praneeth"/Desktop/COMPSEC). The KDC runs only inside WSL on localhost;
+nothing is exposed to your network unless you change the WSL networking mode.

@@ -1,0 +1,228 @@
+﻿=== MAIN: poll 1.0 s, delays 0,1,3, 3 repeats ===
+[train] 240 real benign rounds ...
+[train] captured 720 real KDC events
+
+--- mode=unprotected poll=1.0s seed=1000 attack_delay=0.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=threshold poll=1.0s seed=1000 attack_delay=0.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=azk poll=1.0s seed=1000 attack_delay=0.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=unprotected poll=1.0s seed=1000 attack_delay=1.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=threshold poll=1.0s seed=1000 attack_delay=1.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=azk poll=1.0s seed=1000 attack_delay=1.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=unprotected poll=1.0s seed=1000 attack_delay=3.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=threshold poll=1.0s seed=1000 attack_delay=3.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=azk poll=1.0s seed=1000 attack_delay=3.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=unprotected poll=1.0s seed=1001 attack_delay=0.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=threshold poll=1.0s seed=1001 attack_delay=0.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=azk poll=1.0s seed=1001 attack_delay=0.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=unprotected poll=1.0s seed=1001 attack_delay=1.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=threshold poll=1.0s seed=1001 attack_delay=1.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=azk poll=1.0s seed=1001 attack_delay=1.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=unprotected poll=1.0s seed=1001 attack_delay=3.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=threshold poll=1.0s seed=1001 attack_delay=3.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=azk poll=1.0s seed=1001 attack_delay=3.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=unprotected poll=1.0s seed=1002 attack_delay=0.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=threshold poll=1.0s seed=1002 attack_delay=0.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=azk poll=1.0s seed=1002 attack_delay=0.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=unprotected poll=1.0s seed=1002 attack_delay=1.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=threshold poll=1.0s seed=1002 attack_delay=1.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=azk poll=1.0s seed=1002 attack_delay=1.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=unprotected poll=1.0s seed=1002 attack_delay=3.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=threshold poll=1.0s seed=1002 attack_delay=3.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=azk poll=1.0s seed=1002 attack_delay=3.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+=========== SUMMARY (mean over repeats; per-run values in the JSON) ===========
+--- attacker pacing 0.0s between requests, poll 1.0s ---
+unprotected  n=3 AES full 18/18  capped 0  denied 0 | RC4 full 10/10 capped 0 denied 0 failed 0 | benign restricted req 0/200 | victims denied 0 capped 0
+threshold    n=3 AES full 18/18  capped 0  denied 0 | RC4 full 10/10 capped 0 denied 0 failed 0 | benign restricted req 0/200 | victims denied 0 capped 10
+azk          n=3 AES full 15/18  capped 3  denied 0 | RC4 full 10/10 capped 0 denied 0 failed 0 | benign restricted req 1.33/200 | victims denied 0 capped 0
+--- attacker pacing 1.0s between requests, poll 1.0s ---
+unprotected  n=3 AES full 18/18  capped 0  denied 0 | RC4 full 10/10 capped 0 denied 0 failed 0 | benign restricted req 0/200 | victims denied 0 capped 0
+threshold    n=3 AES full 8/18  capped 10  denied 0 | RC4 full 6/10 capped 4 denied 0 failed 0 | benign restricted req 0/200 | victims denied 0 capped 10
+azk          n=3 AES full 6/18  capped 12  denied 0 | RC4 full 6/10 capped 4 denied 0 failed 0 | benign restricted req 1.33/200 | victims denied 0 capped 0
+--- attacker pacing 3.0s between requests, poll 1.0s ---
+unprotected  n=3 AES full 18/18  capped 0  denied 0 | RC4 full 10/10 capped 0 denied 0 failed 0 | benign restricted req 0/200 | victims denied 0 capped 0
+threshold    n=3 AES full 8/18  capped 10  denied 0 | RC4 full 6/10 capped 4 denied 0 failed 0 | benign restricted req 0/200 | victims denied 0 capped 10
+azk          n=3 AES full 6/18  capped 12  denied 0 | RC4 full 6/10 capped 4 denied 0 failed 0 | benign restricted req 1.33/200 | victims denied 0 capped 0
+MAIN EXIT 0
+=== SENSITIVITY: poll 0.25 s, delays 0,1, 2 repeats ===
+[train] 240 real benign rounds ...
+[train] captured 720 real KDC events
+
+--- mode=unprotected poll=0.25s seed=1000 attack_delay=0.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=threshold poll=0.25s seed=1000 attack_delay=0.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=azk poll=0.25s seed=1000 attack_delay=0.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=unprotected poll=0.25s seed=1000 attack_delay=1.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=threshold poll=0.25s seed=1000 attack_delay=1.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=azk poll=0.25s seed=1000 attack_delay=1.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=unprotected poll=0.25s seed=1001 attack_delay=0.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=threshold poll=0.25s seed=1001 attack_delay=0.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=azk poll=0.25s seed=1001 attack_delay=0.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=unprotected poll=0.25s seed=1001 attack_delay=1.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=threshold poll=0.25s seed=1001 attack_delay=1.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=azk poll=0.25s seed=1001 attack_delay=1.0s ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+=========== SUMMARY (mean over repeats; per-run values in the JSON) ===========
+--- attacker pacing 0.0s between requests, poll 0.25s ---
+unprotected  n=2 AES full 18/18  capped 0  denied 0 | RC4 full 10/10 capped 0 denied 0 failed 0 | benign restricted req 0/200 | victims denied 0 capped 0
+threshold    n=2 AES full 18/18  capped 0  denied 0 | RC4 full 10/10 capped 0 denied 0 failed 0 | benign restricted req 0/200 | victims denied 0 capped 10
+azk          n=2 AES full 13.5/18  capped 4.5  denied 0 | RC4 full 10/10 capped 0 denied 0 failed 0 | benign restricted req 0/200 | victims denied 0 capped 0
+--- attacker pacing 1.0s between requests, poll 0.25s ---
+unprotected  n=2 AES full 18/18  capped 0  denied 0 | RC4 full 10/10 capped 0 denied 0 failed 0 | benign restricted req 0/200 | victims denied 0 capped 0
+threshold    n=2 AES full 8/18  capped 10  denied 0 | RC4 full 6/10 capped 4 denied 0 failed 0 | benign restricted req 0/200 | victims denied 0 capped 10
+azk          n=2 AES full 6/18  capped 12  denied 0 | RC4 full 6/10 capped 4 denied 0 failed 0 | benign restricted req 0/200 | victims denied 0 capped 0
+SENS EXIT 0
+ALLDONE

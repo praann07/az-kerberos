@@ -1,0 +1,38 @@
+{
+  "throughput": [
+    {
+      "n_events": 5000,
+      "checkpoint_every": 50,
+      "append_rate_eps": 58619.2,
+      "verify_rate_eps": 75472.7,
+      "file_size_kb": 1713.7,
+      "verify_ok": true
+    },
+    {
+      "n_events": 5000,
+      "checkpoint_every": 100,
+      "append_rate_eps": 64476.9,
+      "verify_rate_eps": 81748.2,
+      "file_size_kb": 1691.9,
+      "verify_ok": true
+    },
+    {
+      "n_events": 5000,
+      "checkpoint_every": 500,
+      "append_rate_eps": 63959.6,
+      "verify_rate_eps": 93499.2,
+      "file_size_kb": 1674.6,
+      "verify_ok": true
+    }
+  ],
+  "tamper_matrix": {
+    "clean": true,
+    "modified_record": true,
+    "deleted_record": true,
+    "reordered_records": true,
+    "inserted_record": true,
+    "forged_signature_detected": true,
+    "truncation_without_anchor_accepted": true,
+    "truncation_with_anchor_detected": true
+  }
+}

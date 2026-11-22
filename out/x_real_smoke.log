@@ -1,0 +1,23 @@
+[train] 80 real benign rounds ...
+[train] captured 240 real KDC events
+
+--- mode=unprotected poll=1.0s seed=1000 ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=threshold poll=1.0s seed=1000 ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+--- mode=azk poll=1.0s seed=1000 ---
+  attack 1: AES Kerberoasting (18 distinct SPNs)
+  attack 2: RC4 Kerberoasting (10 distinct RC4-capable SPNs)
+  attack 3: password spray (15 victims x 3 wrong passwords)
+
+=========== SUMMARY (mean over repeats; per-run values in the JSON) ===========
+unprotected  AES full 18/18  capped 0  denied 0 | RC4 full 10/10 failed 0 | benign restricted req 0/200 | victims denied 0 capped 0
+threshold    AES full 18/18  capped 0  denied 0 | RC4 full 10/10 failed 0 | benign restricted req 0/200 | victims denied 0 capped 10
+azk          AES full 18/18  capped 0  denied 0 | RC4 full 10/10 failed 0 | benign restricted req 0/200 | victims denied 0 capped 0
+EXIT 0
