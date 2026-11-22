@@ -17,6 +17,7 @@ includes lines copied from a live journal (tests/real_kdc_lines_sample.txt).
 """
 from __future__ import annotations
 
+import hashlib
 import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -156,7 +157,10 @@ def parse_line(line: str, year: Optional[int] = None, default_ts: Optional[float
     if amb:
         cand = _tgs_client_fallback(b.group(3))
         if cand is not None:
-            return Event(ts, "TGS", ok, status, ip, cand, "?", req_et, rep_et, service_unreliable=True)
+            # distinct raw text -> distinct placeholder, so svc_distinct is not collapsed by an unreliable name
+            rest = b.group(3)[len(cand) + 5:]
+            svc = "?" + hashlib.sha1(rest.encode("utf-8", "replace")).hexdigest()[:12]
+            return Event(ts, "TGS", ok, status, ip, cand, svc, req_et, rep_et, service_unreliable=True)
     return Event(ts, "TGS", ok, status, ip, client, service, req_et, rep_et, ambiguous=amb)
 
 

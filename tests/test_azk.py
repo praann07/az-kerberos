@@ -326,7 +326,11 @@ def test_parse_name_containing_for_clause_is_not_misattributed_to_another_princi
     ev = parse_line(pre + "LOOKING_UP_SERVER: authtime 0, etypes {rep=UNSUPPORTED:(0)} user02@LAB.TEST "
                     "for svc a for z@LAB.TEST, Server not found in Kerberos database")
     assert ev is not None and not ev.ambiguous and ev.service_unreliable
-    assert ev.client == "user02@LAB.TEST" and ev.service == "?"
+    assert ev.client == "user02@LAB.TEST" and ev.service.startswith("?") and ev.service != "?"
+    # distinct unreliable service texts stay distinct (no collapse of svc_distinct); same text stays equal
+    ok_line = pre + "ISSUE: authtime 1, etypes {rep=aes256-cts-hmac-sha1-96(18)}, user02@LAB.TEST for %s"
+    svcs = [parse_line(ok_line % s).service for s in ("a for b@R", "c for d@R", "a for b@R")]
+    assert svcs[0] != svcs[1] and svcs[0] == svcs[2] and all(s.startswith("?") for s in svcs)
     eng = Engine(FeatureExtractor(), _FixedScorer(), LevelMap((0.5, 1.0, 2.0)), hold_s=100)
     eng.feed(ev)
     assert eng.ambiguous_events == 1 and "user02@LAB.TEST" in eng.ex._by_client
