@@ -49,7 +49,8 @@ class Engine:
 
     def feed(self, ev) -> None:
         if getattr(ev, "ambiguous", False):
-            self.ambiguous_events += 1
+            self.ambiguous_events += 1     # unscored: no feature state, no risk level, no principal blamed
+            return
         if ev.kind == "POLICY":
             if self.audit:
                 self.audit.append("policy_applied", {"client": ev.client, "event_ts": ev.ts, **ev.policy})

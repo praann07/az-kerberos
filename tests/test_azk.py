@@ -316,17 +316,22 @@ def test_parse_name_containing_for_clause_is_not_misattributed_to_another_princi
     # Second security-review finding: "victim for krbtgt/..." inside an attacker-chosen name must
     # not make the failure count against "victim@LAB.TEST".
     evil = "victim@LAB.TEST for krbtgt/LAB.TEST@LAB.TEST, x"
-    # nonexistent client: attacker controls the client name -> last-split keeps it whole, flagged ambiguous
-    ev = parse_line(sim.as_fail(5.0, "1.2.3.4", evil, status="CLIENT_NOT_FOUND"))
-    assert ev is not None and ev.client == evil and ev.client != "victim@LAB.TEST" and ev.ambiguous
-    # third finding: attacker controls the SERVICE name of a TGS request; the authenticated client must
-    # stay the real user (first-split) so the failure is still counted against them, not hidden
+    # Every status is untrusted: both splits (first / last " for ") must agree, else the line is ambiguous.
+    for status in ("CLIENT_NOT_FOUND", "PREAUTH_FAILED", "SOME_FUTURE_STATUS"):
+        ev = parse_line(sim.as_fail(5.0, "1.2.3.4", evil, status=status))
+        assert ev is not None and ev.ambiguous and ev.client.startswith("?") and ev.client != "victim@LAB.TEST"
+    ev = parse_line(sim.tgs_ok(5.0, "1.2.3.4", evil, "host/a@EXAMPLE.COM"))
+    assert ev is not None and ev.ambiguous and ev.client.startswith("?")
+    # attacker-chosen SERVICE name in a TGS request: not attributed to the real user either, and unscored
     tgs = ("2026-11-20T18:09:12+00:00 kdc azk-kdcpolicy[221]: TGS_REQ (1 etypes {aes256-cts-hmac-sha1-96(18)}) "
            "127.0.0.1: LOOKING_UP_SERVER: authtime 0, etypes {rep=UNSUPPORTED:(0)} user02@LAB.TEST "
            "for svc a for z@LAB.TEST, Server not found in Kerberos database")
     ev = parse_line(tgs)
-    assert ev is not None and ev.client == "user02@LAB.TEST" and ev.ambiguous
-    # unsplittable untrusted line is kept under a "?" key (never dropped, never equal to a real principal)
+    assert ev is not None and ev.ambiguous and ev.client.startswith("?")
+    eng = Engine(FeatureExtractor(), _FixedScorer(), LevelMap((0.5, 1.0, 2.0)), hold_s=100)
+    eng.feed(ev)
+    assert eng.ambiguous_events == 1 and eng.state == {} and not eng.ex._by_client
+    # unsplittable line is kept under a "?" key (never dropped, never equal to a real principal)
     ev = parse_line("2026-11-20T18:09:12+00:00 kdc krb5kdc[1](info): AS_REQ (1 etypes {aes256-cts-hmac-sha1-96(18)}) "
                     "1.2.3.4: CLIENT_NOT_FOUND: garbage without the keyword")
     assert ev is not None and ev.client.startswith("?") and ev.ambiguous

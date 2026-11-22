@@ -37,15 +37,11 @@ _ETID = re.compile(r"\((\d+)\)")
 # Client groups are (.+?)/(.+): principal names may contain spaces; a strict \S+ would make such
 # lines unparseable and let an attacker hide failed attempts from the counters.
 _AS_OK = re.compile(r"authtime (\d+), (etypes \{[^}]*\}), (.+) for (\S+)$")
-# "CLIENT for SERVICE[, message]" is ambiguous in a text log, so the split point is chosen by WHO
-# controls each field (see _split_cs), never by a greedy/lazy regex the attacker can steer:
-#   * TGS request, and AS request whose client exists: the client is authenticated or found in the KDB,
-#     so it never contains " for "; the SERVICE name is attacker-chosen -> split at the FIRST " for ".
-#   * AS request for a client that does NOT exist (CLIENT_NOT_FOUND / LOOKING_UP_CLIENT): the client name
-#     is attacker-chosen -> split at the LAST " for <token with @>"; the result can never equal a real
-#     principal, so it cannot be misattributed to a victim.
-# Anything that cannot be split is kept under the key "?"+text and flagged ambiguous (never dropped).
-_AS_UNTRUSTED_CLIENT = frozenset({"CLIENT_NOT_FOUND", "LOOKING_UP_CLIENT"})
+# "CLIENT for SERVICE[, message]" is ambiguous in a text log when either name contains " for ". No
+# status list or regex greediness is trusted to settle it (an attacker can steer both); instead the
+# line is split TWO ways (first " for " and last " for <token with @>", see _split_cs) and is accepted
+# only if both agree. Otherwise it is kept under a "?"+text key and flagged ambiguous, and
+# Engine.feed does not score it, so it can never be attributed to a real principal.
 _AS_FAIL = re.compile(r"(.+) for (\S+@\S+?)(?:, (.*))?$")
 # Real MIT krb5 1.20.1 output: ISSUE lines have "etypes {...}, CLIENT" but failure lines
 # (AZK_RISK_DENY, LOOKING_UP_SERVER, BAD_ENCRYPTION_TYPE) have "etypes {...} CLIENT" with NO comma.
@@ -71,17 +67,14 @@ class Event:
     ambiguous: bool = False        # client/service split was not unique (informational, never scored)
 
 
-def _split_cs(body: str, trusted_client: bool) -> tuple:
+def _split_cs(body: str) -> tuple:
     """Split "CLIENT for SERVICE[, message]" -> (client, service, ambiguous). See the comment above."""
-    if trusted_client:
-        i = body.find(" for ")
-        if i > 0:
-            service = body[i + 5:].split(", ", 1)[0]
-            return body[:i], service, " for " in service
-    else:
-        m = _AS_FAIL.match(body)
-        if m:
-            return m.group(1), m.group(2), " for " in m.group(1)
+    i = body.find(" for ")
+    m = _AS_FAIL.match(body)
+    if i > 0 and m:
+        first = (body[:i], body[i + 5:].split(", ", 1)[0])
+        if first == (m.group(1), m.group(2)):
+            return first[0], first[1], False
     return "?" + body, "", True
 
 
@@ -137,7 +130,7 @@ def parse_line(line: str, year: Optional[int] = None, default_ts: Optional[float
             rep_et = tuple(int(x) for x in _ETID.findall(b.group(2)))
             client, service = b.group(3), b.group(4)
         else:
-            client, service, amb = _split_cs(body, status not in _AS_UNTRUSTED_CLIENT)
+            client, service, amb = _split_cs(body)
             return Event(ts, "AS", ok, status, ip, client, service, req_et, rep_et, ambiguous=amb)
         return Event(ts, "AS", ok, status, ip, client, service, req_et, rep_et)
     b = _TGS.match(body)
@@ -145,7 +138,7 @@ def parse_line(line: str, year: Optional[int] = None, default_ts: Optional[float
         return None
     if b.group(2):
         rep_et = tuple(int(x) for x in _ETID.findall(b.group(2)))
-    client, service, amb = _split_cs(b.group(3), True)
+    client, service, amb = _split_cs(b.group(3))
     return Event(ts, "TGS", ok, status, ip, client, service, req_et, rep_et, ambiguous=amb)
 
 
