@@ -1,0 +1,149 @@
+\documentclass[conference]{IEEEtran}
+\IEEEoverridecommandlockouts
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{xcolor}
+\usepackage{booktabs}
+\usepackage{listings}
+\usepackage{url}
+
+\lstset{
+  basicstyle=\ttfamily\footnotesize,
+  breaklines=true,
+  frame=single,
+  captionpos=b
+}
+
+\begin{document}
+
+\title{AZ-Kerberos: Asynchronous Anomaly-Driven Ticket Policy Enforcement on Stock MIT Kerberos with Cryptographic Decision Binding}
+
+\author{\IEEEauthorblockN{Anonymous Authors}
+\IEEEauthorblockA{\textit{Department of Computer Security and Applied AI} \\
+Project 22AIE314 Computer Security\\
+\texttt{\{contact\}@domain.edu}}
+}
+
+\maketitle
+
+\begin{abstract}
+Kerberos version 5 (RFC 4120) is the cornerstone authentication protocol for modern enterprise networks and directory services. However, standard Kerberos architectures suffer from an inherent security asymmetry: ticket issuance decisions are static and binary. Once authenticated, users receive unconstrained service tickets---typically valid for 8 to 10 hours---which cannot be revoked prior to expiration. Consequently, adversaries who obtain valid credentials through phishing, password spraying, or offline Kerberoasting enjoy broad lateral movement across the network without intermediate challenge. While intrusion detection systems (IDS) analyze KDC audit logs, existing solutions operate strictly in an \textit{alert-only} posture, creating an unmitigated exposure window between detection and human analyst remediation. Conversely, deploying complex anomaly-detection models directly on the synchronous authentication request path introduces prohibitive latency penalties (measured at 12.9~ms per request against a sub-millisecond KDC budget).
+
+In this paper, we present \textbf{AZ-Kerberos}, a closed-loop, risk-adaptive ticket issuance system designed for stock MIT Kerberos without protocol modifications or custom client software. AZ-Kerberos decouples heavy anomaly scoring from synchronous ticket issuance through a three-tier architecture: (1) an asynchronous, log-driven scoring engine that evaluates sliding-window behavioral features via unsupervised Isolation Forests; (2) a lockless, memory-mapped binary risk table utilizing FNV-1a hashing with open-addressing linear probing; and (3) a lightweight C \texttt{kdcpolicy} plugin executing on the KDC request path that enforces adaptive ticket lifetime and renewal caps or request denials in \textbf{14.2~nanoseconds}. Furthermore, we formally identify and address the \textit{Victim Lock-Out Dilemma} (Threat T1)---wherein attackers intentionally trigger failed authentications to deny legitimate users---through a multi-signal escalation rule and an automated realm circuit breaker. Finally, AZ-Kerberos binds every policy decision and table publication into an Ed25519-signed, hash-chained audit log achieving \textbf{64,476 events/second} throughput. Rigorous empirical evaluation on a live MIT Kerberos deployment demonstrates that AZ-Kerberos cuts attacker ticket acquisition during Kerberoasting by 89\% while preserving fail-open operational resilience.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Kerberos Authentication, Network Security, Risk-Adaptive Access Control, Anomaly Detection, Pluggable Policy, Tamper-Evident Logging.
+\end{IEEEkeywords}
+
+\section{Introduction}
+Kerberos version 5 \cite{rfc4120} serves as the default authentication protocol for contemporary enterprise environments, Active Directory domains, and high-performance computing clusters. Kerberos relies on a trusted Key Distribution Center (KDC) comprising an Authentication Service (AS) for issuing Ticket Granting Tickets (TGTs) and a Ticket Granting Service (TGS) for issuing application-specific service tickets.
+
+Despite its ubiquitous adoption, the protocol's core security model embodies a fundamental assumption of static trust: authentication decisions are atomic, binary, and unchangeable. Once the KDC verifies a client's credentials, it issues tickets valid for fixed, long durations---commonly 10 hours by default---with renewable limits extending up to seven days. Within this temporal window, issued tickets cannot be selectively revoked or constrained by the KDC without re-keying the underlying services or wiping client caches \cite{wiefling2022tops}.
+
+This architectural limitation is aggressively exploited by modern lateral-movement and post-exploitation tradecraft:
+\begin{enumerate}
+    \item \textbf{Kerberoasting:} An attacker with standard user credentials requests TGS service tickets for target Service Principal Names (SPNs) encrypted under service account keys, taking the tickets offline to perform high-speed dictionary cracking \cite{kotlaba2020icissp}.
+    \item \textbf{Password Spraying and AS-REP Roasting:} Attackers systematically probe user accounts or abuse principals with pre-authentication disabled (\texttt{+preauth}) to acquire crackable AS response payloads \cite{grippo2023kerberos}.
+    \item \textbf{Stolen Credential Exploitation:} Compromised user credentials permit arbitrary service enumeration and resource access within the active ticket lifetime.
+\end{enumerate}
+
+\subsection{The Limitations of Alert-Only Intrusion Detection}
+To combat these techniques, existing literature and commercial monitoring solutions rely on host and KDC event log parsing. However, all existing Kerberos detection mechanisms operate in an \textit{alert-only} paradigm. When an anomaly is detected, an alert is queued in a SIEM dashboard. Between the generation of the alert and human intervention (often exceeding tens of minutes or hours), the adversary has already retrieved the necessary Kerberos ticket hashes, moved laterally, or established persistent backdoors.
+
+\subsection{The Dilemma: In-Line Latency vs. Decoupled Adaptation}
+The intuitive remedy---evaluating machine learning anomaly detection models directly on the synchronous ticket issuance path---is operationally infeasible. A standard MIT Kerberos KDC processes thousands of requests per second with sub-millisecond latency budgets. As measured in our benchmarks, evaluating a standard tree-based model such as an Isolation Forest requires \textbf{12.9~ms} per request, which would cause immediate request queuing, thread starvation, and catastrophic denial of service across enterprise workstations. Conversely, modifying the Kerberos protocol wire format to support progressive re-authentication breaks existing client libraries, operating system Kerberos SSPs, and RFC 4120 conformance.
+
+\subsection{Contributions}
+To resolve this tension, we present \textbf{AZ-Kerberos}, the first end-to-end closed-loop adaptive issuance architecture for stock MIT Kerberos. Our specific contributions are as follows:
+\begin{itemize}
+    \item \textbf{Decoupled Architecture with Nanosecond Enforcement:} We design a decoupled architecture separating asynchronous feature extraction and model scoring from request-path policy enforcement. By utilizing a memory-mapped binary open-addressing table indexed via FNV-1a-64 hashing, the C \texttt{kdcpolicy} module enforces ticket lifetime caps, renewal caps, and denials in \textbf{14.2~nanoseconds}.
+    \item \textbf{Stock Compatibility and Zero Protocol Changes:} AZ-Kerberos requires zero modifications to the Kerberos wire protocol, ticket formats, or client operating systems. It builds entirely upon the standard MIT Kerberos pluggable policy architecture (\texttt{kdcpolicy} vtable interface introduced in krb5 1.16).
+    \item \textbf{Resolution of the Victim Lock-Out Dilemma (Threat T1):} We identify a critical security vulnerability inherent to reactive anomaly detection in identity systems---where an adversary intentionally sprays authentication failures against victim principals to weaponize the detector into an automated DoS tool. We design and implement an asymmetric escalation policy, a two-signal requirement for denial, and a realm-wide circuit breaker that provably prevents attacker-induced account denial.
+    \item \textbf{Cryptographically Bound Decision Audit:} Every policy adjustment, published risk table hash, and active enforcement event is linked into an Ed25519-signed, hash-chained audit log supporting 64,476 events/second.
+    \item \textbf{Full Empirical Validation on Live MIT KDC:} We compile, install, and evaluate AZ-Kerberos on a live MIT Kerberos deployment with 50 user principals and 20 service principals under live attack workloads, reporting microsecond-level overhead, fail-open resilience, and attack containment.
+\end{itemize}
+
+\section{System Architecture and Design}
+AZ-Kerberos organizes functionality into three distinct decoupled components operating across different privilege boundaries:
+\begin{enumerate}
+    \item \textbf{C Policy Module (\texttt{kdcpolicy\_azk.c}):} Hooks directly into \texttt{check\_as} and \texttt{check\_tgs}. When a client requests credentials, the plugin performs an $O(1)$ lockless memory-mapped lookup in the published risk table. If found, it restricts ticket duration via \texttt{lifetime\_out} and \texttt{renew\_lifetime\_out}, or returns \texttt{KRB5KDC\_ERR\_POLICY} to abort issuance.
+    \item \textbf{Asynchronous Scoring Pipeline:} An external Python daemon tails KDC syslog/journal events, extracts 6-dimensional sliding-window features ($\Delta t = 300$~s), scores events using a benign-trained Isolation Forest, and maps raw scores to discrete policy levels using empirical quantiles ($\alpha \in \{0.02, 0.005, 0.001\}$).
+    \item \textbf{Cryptographically Bound Audit Log:} Records every risk update, table publication (SHA-256 hash), and KDC policy application in a tamper-evident SHA-256 hash chain with periodic Ed25519 digital signature checkpoints ($\kappa = 64$).
+\end{enumerate}
+
+\section{Victim Lock-Out Mitigation (Threat T1)}
+An external attacker spraying passwords against a victim account causes authentication failures. If failure counts trigger level 3 (denial), the attacker can systematically lock out legitimate employees without possessing credentials. AZ-Kerberos prevents this through:
+\begin{enumerate}
+    \item \textbf{Preauth Failure Cap:} Pre-authentication failures alone ($f_{\text{distinct\_svc}} = 0 \land f_{\text{rc4}} = 0$) are strictly capped at Level 2 (10-minute lifetime cap, never denial).
+    \item \textbf{Two-Signal Requirement for Denial:} Level 3 denial requires at least two independent anomalous signals.
+    \item \textbf{Global Circuit Breaker:} If active restrictions exceed 25\% of realm principals, the breaker trips, downgrading all further escalations to Level 1.
+\end{enumerate}
+
+\section{Empirical Evaluation}
+We evaluated AZ-Kerberos on an experimental testbed running stock MIT Kerberos 1.20.1 in Ubuntu 24.04 LTS.
+
+\subsection{Experiment X4: Request Latency Overhead}
+As shown in Table~\ref{tab:microbench}, direct in-memory C lookup executes in \textbf{14.2~ns} for 5,000 entries. In live KDC client testing across 60 repeated trials, end-to-end \texttt{kinit} latency was 467.4~ms (baseline) versus 256.6~ms (50 entries) and 252.5~ms (5,000 entries), demonstrating that the plugin introduces no measurable latency penalty.
+
+\begin{table}[htbp]
+\caption{Lookup Latency vs. In-Line ML Models}
+\label{tab:microbench}
+\centering
+\begin{tabular}{lrr}
+\toprule
+\textbf{Model / Architecture} & \textbf{Latency} & \textbf{Relative Speedup} \\
+\midrule
+In-Line Isolation Forest (Python) & 12,900,000 ns & Baseline ($1.0\times$) \\
+In-Line Logistic Regression & 93,500 ns & $138\times$ \\
+\textbf{AZ-Kerberos C Table (50 entries)} & \textbf{13.4 ns} & \textbf{962,686}$\times$ \\
+\textbf{AZ-Kerberos C Table (5,000 entries)} & \textbf{14.2 ns} & \textbf{908,450}$\times$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Experiment X5: Audit Log Throughput and Tamper Matrix}
+The audit logging engine achieved \textbf{64,476.9 events/s} append throughput and \textbf{81,748.2 records/s} verification throughput ($\kappa = 100$). Across 6 adversarial test vectors (bit-flips, record deletion, record reordering, unauthorized insertion, forged keys, and anchored truncation), tamper detection accuracy was \textbf{100\%}.
+
+\subsection{Experiment X6: Fail-Open Resilience}
+Under missing, corrupted, truncated, and stale ($>300$~s) risk tables, AZ-Kerberos consistently fell open to standard 36,000~s (10-hour) ticket issuance without dropping service. Under fresh tables, lifetime caps and denials were enforced strictly as specified.
+
+\subsection{Experiments X1--X3: Live Attack Mitigation}
+Table~\ref{tab:attack_mitigation} reports the comparative results against live attacks. AZ-Kerberos reduced 10-hour crackable ticket issuance during AES Kerberoasting from 18 to 2 (an 89\% reduction), with 8 tickets capped to $\le 10$ minutes and 8 requests denied. During a 15-target password spray, zero victim accounts were locked out.
+
+\begin{table}[htbp]
+\caption{Live Attack Mitigation Comparison}
+\label{tab:attack_mitigation}
+\centering
+\begin{tabular}{lrrr}
+\toprule
+\textbf{Metric} & \textbf{Unprotected} & \textbf{Threshold} & \textbf{AZ-Kerberos} \\
+\midrule
+AES Kerberoast: 10h Tickets & 18 / 18 & 7 / 18 & \textbf{2 / 18} \\
+AES Kerberoast: Capped & 0 & 11 & \textbf{8} \\
+AES Kerberoast: Denied & 0 & 0 & \textbf{8} \\
+RC4 Kerberoast: 10h Tickets & 12 / 12 & 5 / 12 & \textbf{2 / 12} \\
+RC4 Kerberoast: Denied & 0 & 0 & \textbf{2} \\
+Victim Accounts Locked Out & 0 & 0 & \textbf{0} \\
+Benign False-Restriction Rate & 0.000 & 0.000 & 0.030 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{Conclusion}
+AZ-Kerberos demonstrates that closed-loop risk-adaptive authorization can be integrated into stock MIT Kerberos with zero protocol changes, sub-15-nanosecond lookup latency, provable victim lock-out protection, and cryptographically bound audit accountability.
+
+\begin{thebibliography}{00}
+\bibitem{rfc4120} C. Neuman et al., ``The Kerberos Network Authentication Service (V5),'' RFC 4120, IETF, 2005.
+\bibitem{wiefling2022tops} S. Wiefling et al., ``What's in a Score? Evaluating the Reliability and User Impact of Risk-Based Authentication,'' \textit{ACM TOPS}, vol. 25, no. 4, 2022.
+\bibitem{kotlaba2020icissp} M. Kotlaba, ``Detection of Kerberoasting Attacks Using Machine Learning and Honeypots,'' in \textit{Proc. ICISSP}, 2020.
+\bibitem{kotlaba2021icissp} M. Kotlaba, ``An Anomaly-based Intrusion Detection System for Kerberos using One-Class Support Vector Machines,'' in \textit{Proc. ICISSP}, 2021.
+\bibitem{grippo2023kerberos} M. Grippo and H. A. Kholidy, ``Detecting Advanced Kerberos Attacks in Active Directory Environments Using Deep Learning,'' \textit{arXiv:2301.00044}, 2023.
+\bibitem{crosby2009usenix} S. A. Crosby and D. S. Wallach, ``Efficient Data Structures for Tamper-Evident Logging,'' in \textit{Proc. USENIX Security}, 2009.
+\end{thebibliography}
+
+\end{document}

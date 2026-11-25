@@ -1,0 +1,202 @@
+AZ-KERBEROS PROJECT SUMMARY
+Course: 22AIE314 Computer Security
+Date: 2026-11-22
+Repository: https://github.com/praann07/az-kerberos (private)
+Author: Mamidala Som Praneeth Babu
+
+======================================================================
+1. PROJECT OVERVIEW & CORE GOAL
+======================================================================
+
+Objective
+  Make Kerberos ticket issuance risk-adaptive on a STOCK, UNMODIFIED
+  MIT Kerberos (krb5) KDC. When a client's behaviour looks like an
+  attack, the KDC shortens the lifetime of the tickets it issues, or
+  refuses to issue them, instead of only raising an alert.
+
+Value proposition
+  - Turns detection into enforcement: most Kerberos intrusion work
+    in the literature is alert-only.
+  - No wire-protocol change and no client change. It uses the MIT
+    kdcpolicy plugin interface (check_as / check_tgs may deny a
+    request or cap ticket lifetime and renewal).
+  - Keeps the request path fast: scoring runs asynchronously; the
+    KDC only does a lock-free table lookup per request.
+  - Every enforcement decision is written to a signed, hash-chained
+    audit log, so tampering can be detected afterwards.
+
+Scope decision
+  An earlier idea (a new wire protocol with custom tickets) was
+  dropped after review: stock clients reject custom tickets, it adds
+  latency, there was no dataset, and it was too large for the course.
+
+======================================================================
+2. CURRENT STATUS (WHAT WE BUILT)
+======================================================================
+
+Completed
+  - C policy plugin (plugin/kdcpolicy_azk.c): memory-mapped risk-table
+    lookup (about 14-20 ns), fail-open if the table is missing or bad.
+  - Python scoring pipeline (src/azk/): KDC log parser, sliding-window
+    features, benign-trained Isolation Forest, level mapping, risk
+    table writer, hash-chained signed audit log, simulator, demo.
+  - Enforcement levels: level 0 normal, level 2 cap lifetime (300 s
+    in the lab), level 3 deny ("KDC policy rejects request").
+  - Live lab: WSL Ubuntu 24.04, MIT krb5 1.20.1, realm LAB.TEST,
+    50 users and 20 service principals.
+  - Tests: 28 unit/integration tests pass; fail-open test, latency
+    benchmark, audit throughput benchmark, tamper-detection matrix.
+  - Six security review rounds of the log parser and plugin; all findings
+    fixed or documented as accepted limitations (docs/03_threat_model.md).
+  - Documentation: docs/01 to 06 (briefing, architecture, threat model,
+    evaluation plan, plan/status, verified facts), a 4-page IEEE-style
+    paper (docs/AZ-Kerberos_paper.pdf, .tex, full text .md), slides.
+  - Literature survey (survey_related_work.md) in four areas:
+    post-quantum Kerberos, Kerberos intrusion detection, risk-based
+    authentication, tamper-evident logs. Re-checked on 2026-11-22.
+
+Measured results (live MIT krb5, mean of 3 repeats)
+  - Paced Kerberoasting, 18 AES tickets: unprotected 18 full-lifetime;
+    threshold rule 8 full + 10 capped; AZ-Kerberos 6 full + 12 capped.
+  - Burst attack: AZ-Kerberos 15 full + 3 capped.
+  - Benign users: 4 of 600 requests restricted at 1 s scoring tick;
+    0 of 400 at 0.25 s tick.
+  - First restriction after 6.4 s / 18.5 s in the AES attack runs.
+  - Audit log: 64,476 events/s; tamper checks pass.
+  - Fail-open verified.
+
+Honest assessment
+  The closed loop works on stock krb5, but it does NOT stop
+  Kerberoasting (capped tickets can still be cracked offline), shows
+  no measured advantage over a simple threshold rule, and detects
+  late. Denial level was never reached in the live attack runs.
+
+Known limits
+  Single lab machine, all clients 127.0.0.1, 3 repeats with no
+  statistics, own attack scripts (not Impacket/Rubeus), stolen-
+  credential attack not run, simulated benign traffic, partial
+  literature search (IEEE Xplore, ACM DL and top security conferences
+  not searched), parser not fuzzed.
+
+======================================================================
+3. TECHNICAL STACK & ARCHITECTURE
+======================================================================
+
+Stack
+  - MIT Kerberos 1.20.1 (Ubuntu 24.04 under WSL), kdcpolicy plugin API
+  - C (plugin, built to kdcpolicy_azk.so; kdb.h ABI checked)
+  - Python 3.12 (scoring, audit, tests), scikit-learn Isolation Forest
+  - KDC log source: syslog via journalctl (tag azk-kdcpolicy)
+  - pytest, LaTeX (pdflatex) for the paper, Git/GitHub
+
+Architecture (request path vs. off-path)
+  Request path (KDC):
+    client request -> kdcpolicy plugin -> read client risk level from
+    mmap table (/var/lib/azk/risk_table.bin) -> allow, cap lifetime
+    and renewal, or deny. Fail-open on any table fault.
+  Off-path (async, about every 1 s):
+    KDC log -> parser (logparse.py) -> per-client sliding-window
+    features (features.py) -> Isolation Forest score (scorer.py) ->
+    level (engine.py) -> atomic table publish (risktable.py) ->
+    signed hash-chained audit entry (audit.py).
+
+Key files
+  plugin/kdcpolicy_azk.c        enforcement plugin
+  src/azk/engine.py             levels, caps, failure policy
+  src/azk/logparse.py           client/service split, ambiguity rules
+  src/azk/audit.py              signed hash-chained log
+  tests/run_live_experiment_real.py   live attack experiments
+  out/*.json, out/*_summary.txt       raw experiment results
+
+======================================================================
+4. STRATEGIC ROADMAP (THE PATH FORWARD)
+======================================================================
+
+Final goal
+  A strong, Scopus-indexed journal paper (target: Computers & Security
+  or Journal of Information Security and Applications first; IEEE TDSC
+  only if results are strong). Acceptance cannot be guaranteed.
+
+Phase 0 - Go/no-go pilot (about 1 day)
+  Enable the denial level for Kerberoasting, run AZ-Kerberos and the
+  threshold baseline with 10 repeats each, sweep the denial threshold.
+  Pre-set pass rule: at <=1% benign users denied, AZ-Kerberos leaks at
+  most half the full-lifetime tickets of the threshold baseline, with
+  non-overlapping 95% confidence intervals.
+
+Phase 1 - Evidence (about 1-2 weeks, only if Phase 0 passes)
+  Reimplement 2-3 published detectors plus a standard threshold
+  detector; score all on the same traces and metrics (true-positive
+  rate, false-restriction rate, full tickets leaked, time to
+  restriction). Use Impacket as the attack tool, several client IPs,
+  10+ repeats with confidence intervals, add stolen-credential and
+  password-spray cases, more realistic benign traffic.
+
+Phase 2 - Literature closure (in parallel)
+  Search IEEE Xplore and ACM DL; read the remaining Qomplx patents
+  (US11968227, US12438906, US12452307, US12641123) and the IEEE
+  Computer 2024 paper (DOI 10.1109/MC.2024.3434535).
+
+Phase 3 - Manuscript
+  Rewrite as a 10-12 page journal manuscript with real author names
+  (docs/conference_paper.tex lines 25 and 28 are placeholders). Verify
+  the target journal in the Scopus source list before submission.
+
+Fallback
+  If Phase 0 fails: frame as a design and negative-result study for a
+  mid-tier venue, or change the angle. Optional faster route: CSP 2027
+  (Nagoya, 27-30 Mar 2027; deadline 5 Dec 2026; "could be submitted"
+  for Scopus, not guaranteed).
+
+======================================================================
+5. ACTIONABLE NEXT STEPS (THE PLAN)
+======================================================================
+
+  1. Get the exact distinction rule from the instructor (is a
+     "submitted" paper or a Scopus-indexed conference paper enough?).
+  2. Decide: run the Phase 0 pilot (user to say "run the pilot").
+  3. Pilot: allow level 3 for failure-driven events (engine.py:33,
+     max_failure_level), run both systems 10 repeats, plot full
+     tickets leaked vs. benign users denied.
+  4. Report pilot numbers against the pre-set pass rule before any
+     further work.
+  5. Provide real author names and affiliation for the paper.
+  6. Verify the chosen journal's Scopus status, fees and scope on the
+     publisher and Scopus pages.
+
+======================================================================
+6. RETROSPECTIVE (WHAT WE DID)
+======================================================================
+
+Achievements
+  - Working closed-loop enforcement on stock MIT krb5 with a signed,
+    hash-chained decision log; no combination of these found in the
+    surveyed literature (partial search, weak negative).
+  - Negligible request-path overhead (14-20 ns lookup); fail-open
+    verified.
+  - Six security review rounds hardened the log parser: field-trust
+    based client/service split, two-way split agreement, ambiguous
+    lines left unscored, distinct placeholders for unreliable
+    service names, anchored parsing.
+
+Key decisions
+  - Stock-plugin design over a custom wire protocol (compatibility,
+    feasibility).
+  - Async scoring off the request path (latency).
+  - Benign-trained Isolation Forest (no labelled attack dataset).
+  - Fail-open (availability over strictness), documented as a threat
+    (T14/T15 accepted limitations).
+
+Challenges overcome
+  - Synthetic first experiments were replaced by real live-KDC runs.
+  - A parser bug that dropped 156 of 730 real log lines was fixed.
+  - Unsupported claims (first, provably, 100%, 89% reduction, a
+    fabricated 98.7% figure) were removed from all documents.
+  - RC4 on krb5 1.20.1 needed allow_weak_crypto, allow_rc4 and
+    session_etypes to test.
+
+Lessons
+  - Results are modest and must be reported as such; the paper is
+    framed honestly as a feasibility study.
+  - A Scopus journal paper needs a mitigation that works and a fair
+    head-to-head comparison, which is the purpose of Phases 0-1.

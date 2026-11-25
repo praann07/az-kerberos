@@ -1,18 +1,10 @@
-# Python caches
+﻿.env
+.env.*
+!.env.example
+venv/
+.venv/
 __pycache__/
-*.pyc
-.pytest_cache/
-
-# Pre-edit backups of the paper
-*.bak_pre_integrity
-
-# Build products (rebuild with the commands in README.md / SETUP_REQUIREMENTS.txt)
-plugin/*.so
-tests/bench_lookup
-
-# Runtime state of the live lab risk table
-out/risk_table.bin
-
-# LaTeX build leftovers
-*.aux
-*.log.tmp
+node_modules/
+dist/
+build/
+*.log
